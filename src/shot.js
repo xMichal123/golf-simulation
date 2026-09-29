@@ -20,13 +20,13 @@ function clampStep(dt) {
 }
 
 function swingAngle(time) {
-  if (time < BACKSWING) return 1.05 * (time / BACKSWING);
+  if (time < BACKSWING) return -1.05 * (time / BACKSWING);
   if (time < BACKSWING + STRIKE) {
     const t = (time - BACKSWING) / STRIKE;
-    return THREE.MathUtils.lerp(1.05, -0.4, t);
+    return THREE.MathUtils.lerp(-1.05, 0.4, t);
   }
   const t = Math.min(1, (time - BACKSWING - STRIKE) / 0.28);
-  return THREE.MathUtils.lerp(-0.4, 0, t);
+  return THREE.MathUtils.lerp(0.4, 0, t);
 }
 
 function rotateY(x, z, yaw) {
@@ -75,7 +75,7 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     const launch = THREE.MathUtils.lerp(
       0.12,
       0.85,
-      THREE.MathUtils.clamp(elevation / 1.05, 0, 1),
+      THREE.MathUtils.clamp(elevation / 1.45, 0, 1),
     );
     return {
       horizontal: ahead,
@@ -104,11 +104,12 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     const c = Math.cos(angle);
     const s = Math.sin(angle);
     sprite.position.set(
-      spriteRest.x * c - spriteRest.y * s,
-      spriteRest.x * s + spriteRest.y * c,
-      spriteRest.z,
+      spriteRest.x * c + spriteRest.z * s,
+      spriteRest.y,
+      -spriteRest.x * s + spriteRest.z * c,
     );
-    sprite.rotation.z = angle;
+    sprite.rotation.y = angle;
+    sprite.rotation.z = 0;
   }
 
   function launch() {
