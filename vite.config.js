@@ -2,12 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'vite';
 
-const deployServer = `import fs from 'node:fs';
-import http from 'node:http';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+const serverSource = `const fs = require('fs');
+const http = require('http');
+const path = require('path');
 
-const root = path.dirname(fileURLToPath(import.meta.url));
+const root = __dirname;
 const port = Number(process.env.PORT) || 3000;
 const hidden = new Set(['server.js', 'package.json']);
 
@@ -32,13 +31,13 @@ if (!fs.existsSync(path.join(root, 'index.html'))) {
   process.exit(1);
 }
 
-function send(res, status, body, type = 'text/plain; charset=utf-8') {
-  res.writeHead(status, { 'Content-Type': type });
+function send(res, status, body, type) {
+  res.writeHead(status, { 'Content-Type': type || 'text/plain; charset=utf-8' });
   res.end(body);
 }
 
 function fileFor(urlPath) {
-  const decoded = decodeURIComponent(urlPath.split('?')[0]);
+  const decoded = decodeURIComponent(String(urlPath || '/').split('?')[0]);
   const relative = decoded.replace(/^\\/+/, '') || 'index.html';
   if (hidden.has(relative)) return null;
   const file = path.normalize(path.join(root, relative));
@@ -48,7 +47,7 @@ function fileFor(urlPath) {
 }
 
 const server = http.createServer((req, res) => {
-  const file = fileFor(req.url || '/');
+  const file = fileFor(req.url);
   if (!file) {
     send(res, 404, 'Not found');
     return;
@@ -66,15 +65,19 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(\`Listening on \${port}\`);
+server.on('error', (err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+server.listen(port, () => {
+  console.log('Listening on ' + port);
 });
 `;
 
 const deployPackage = {
   name: 'golf-simulation',
   private: true,
-  type: 'module',
   scripts: {
     start: 'node server.js',
   },
@@ -90,7 +93,7 @@ function stageDeploy() {
     closeBundle() {
       const dist = path.resolve('dist');
       fs.mkdirSync(dist, { recursive: true });
-      fs.writeFileSync(path.join(dist, 'server.js'), deployServer);
+      fs.writeFileSync(path.join(dist, 'server.js'), serverSource);
       fs.writeFileSync(path.join(dist, 'package.json'), `${JSON.stringify(deployPackage, null, 2)}\n`);
     },
   };
