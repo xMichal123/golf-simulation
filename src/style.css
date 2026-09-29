@@ -53,6 +53,57 @@ canvas {
   animation: shot-power 0.9s linear infinite alternate;
 }
 
+.shot-label {
+  display: none;
+}
+
+#shot-button.is-replay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #7ed36a;
+  color: #163024;
+  font: 700 18px/1 "Segoe UI", sans-serif;
+}
+
+#shot-button.is-replay .shot-fill {
+  display: none;
+}
+
+#shot-button.is-replay .shot-label {
+  display: block;
+}
+
+#win-banner {
+  position: fixed;
+  top: 11vh;
+  left: 50%;
+  z-index: 2;
+  padding: 14px 22px 16px;
+  border-radius: 16px;
+  background: rgba(18, 42, 30, 0.9);
+  color: #f7f5f0;
+  font: 700 28px/1.15 "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: win-pop 0.35s ease-out;
+}
+
+@keyframes win-pop {
+  from {
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes shot-power {
   from {
     transform: scaleX(0);

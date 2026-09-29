@@ -212,6 +212,7 @@ export function createGolfer() {
       depthWrite: false,
     }),
   );
+  shadow.name = 'golfer-shadow';
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.y = 0.03;
   shadow.renderOrder = 1;

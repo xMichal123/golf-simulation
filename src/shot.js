@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { faceGolferToCamera } from './golfer.js';
 import { COURSE, sampleHeight } from './terrain.js';
 
 const BALL_RADIUS = 0.032;
@@ -7,6 +8,8 @@ const GRAVITY = 13.5;
 const AIR_DRAG = 0.08;
 const RESTITUTION = 0.4;
 const STOP_SPEED = 0.45;
+const HOLE_RADIUS = 0.55;
+const HOLE_SPEED = 1.25;
 const BACKSWING = 0.48;
 const STRIKE = 0.14;
 const IMPACT_TIME = 0.58;
@@ -48,10 +51,11 @@ export function readShotPower(button) {
   return THREE.MathUtils.clamp(Number(values[0]), 0, 1);
 }
 
-export function createShotController({ scene, camera, controls, golfer, shotButton }) {
+export function createShotController({ scene, camera, controls, golfer, shotButton, winBanner }) {
   const ball = golfer.getObjectByName('ball');
   const peg = golfer.getObjectByName('peg');
   const sprite = golfer.getObjectByName('golfer-sprite');
+  const shadow = golfer.getObjectByName('golfer-shadow');
   const ballHome = ball.position.clone();
   const spriteRest = sprite.position.clone();
   const velocity = new THREE.Vector3();
@@ -63,6 +67,9 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
   let launched = false;
   let lockedYaw = 0;
   let walk = null;
+  let strokes = 0;
+  let won = false;
+  let celebrateTime = 0;
 
   function setActionsEnabled(enabled) {
     controls.enabled = enabled;
@@ -82,6 +89,7 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
 
   function begin(power) {
     if (mode !== 'ready') return;
+    strokes += 1;
     const aim = aimFromCamera();
     horizontal.copy(aim.horizontal);
     velocity.copy(aim.direction).multiplyScalar(Math.max(0, power) * MAX_SPEED);
@@ -103,6 +111,41 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     );
     sprite.rotation.y = angle;
     sprite.rotation.z = 0;
+  }
+
+  function restoreSprite() {
+    poseSwing(0);
+    sprite.scale.set(1, 1, 1);
+    if (shadow) {
+      shadow.scale.set(1, 1, 1);
+      shadow.material.opacity = 0.22;
+    }
+  }
+
+  function ballInHole() {
+    if (velocity.length() > HOLE_SPEED) return false;
+    if (!onGround(ball.position)) return false;
+    const dx = ball.position.x - COURSE.hole.x;
+    const dz = ball.position.z - COURSE.hole.z;
+    return dx * dx + dz * dz <= HOLE_RADIUS * HOLE_RADIUS;
+  }
+
+  function showWin() {
+    won = true;
+    winBanner.textContent = strokes === 1 ? 'Hole in one' : `Hole in ${strokes}`;
+    winBanner.hidden = false;
+    shotButton.classList.remove('is-pressed');
+    shotButton.classList.add('is-replay');
+    shotButton.disabled = false;
+    shotButton.setAttribute('aria-label', 'Play again');
+    controls.enabled = false;
+  }
+
+  function clearWin() {
+    won = false;
+    winBanner.hidden = true;
+    shotButton.classList.remove('is-replay', 'is-pressed');
+    shotButton.setAttribute('aria-label', 'Shot power');
   }
 
   function launch() {
@@ -180,9 +223,19 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
 
   function finishWalk() {
     golfer.position.copy(walk.stance);
+    golfer.position.y = sampleHeight(golfer.position.x, golfer.position.z);
+    if (won) {
+      restoreSprite();
+      walk = null;
+      mode = 'celebrate';
+      celebrateTime = 0;
+      faceGolferToCamera(golfer, camera);
+      return;
+    }
+
     golfer.rotation.y = walk.yaw;
     golfer.rotation.z = 0;
-    poseSwing(0);
+    restoreSprite();
     golfer.attach(ball);
     ball.position.copy(ballHome);
     ball.rotation.set(0, 0, 0);
@@ -200,11 +253,7 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     setActionsEnabled(true);
   }
 
-  function startWalk() {
-    const rest = ball.position.clone();
-    rest.y = sampleHeight(rest.x, rest.z) + BALL_RADIUS;
-    ball.position.copy(rest);
-    const { stance, yaw, toHole } = stanceAt(rest);
+  function beginWalk(stance, yaw, toHole, lookFrom, camDistance = 6.5) {
     walk = {
       time: 0,
       duration: THREE.MathUtils.clamp(golfer.position.distanceTo(stance) / 3.5, 0.45, 1.5),
@@ -214,9 +263,82 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
       toHole,
       yawFrom: golfer.rotation.y,
       camFrom: camera.position.clone(),
-      lookFrom: rest.clone(),
+      lookFrom: lookFrom.clone(),
+      camDistance,
     };
     mode = 'walk';
+  }
+
+  function startWalk() {
+    const rest = ball.position.clone();
+    rest.y = sampleHeight(rest.x, rest.z) + BALL_RADIUS;
+    ball.position.copy(rest);
+    const { stance, yaw, toHole } = stanceAt(rest);
+    beginWalk(stance, yaw, toHole, rest);
+  }
+
+  function holeSideStance() {
+    const { hole } = COURSE;
+    const away = new THREE.Vector3(golfer.position.x - hole.x, 0, golfer.position.z - hole.z);
+    if (away.lengthSq() < 0.25) away.set(1.35, 0, 0.55);
+    else away.setLength(1.7);
+    const stance = new THREE.Vector3(hole.x + away.x, 0, hole.z + away.z);
+    stance.y = sampleHeight(stance.x, stance.z);
+    const toHole = away.clone().negate().normalize();
+    const yaw = Math.atan2(-toHole.x, -toHole.z);
+    return { stance, yaw, toHole };
+  }
+
+  function startWin() {
+    velocity.set(0, 0, 0);
+    ball.position.y = sampleHeight(ball.position.x, ball.position.z) + BALL_RADIUS;
+    showWin();
+    const { stance, yaw, toHole } = holeSideStance();
+    beginWalk(stance, yaw, toHole, ball.position, 4.8);
+  }
+
+  function updateCelebrate(dt) {
+    celebrateTime += dt;
+    const hop = Math.sin(((celebrateTime % 0.62) / 0.62) * Math.PI);
+    sprite.position.y = spriteRest.y + hop * 0.7;
+    sprite.scale.set(1 - hop * 0.04, 1 + hop * 0.07, 1);
+    if (shadow) {
+      const shade = 1 - hop * 0.4;
+      shadow.scale.setScalar(Math.max(0.45, shade));
+      shadow.material.opacity = 0.22 * shade;
+    }
+    faceGolferToCamera(golfer, camera);
+    _look.set(golfer.position.x, golfer.position.y + 1.15 + hop * 0.25, golfer.position.z);
+    camera.lookAt(_look);
+  }
+
+  function replay() {
+    if (!won) return;
+    clearWin();
+    walk = null;
+    launched = false;
+    swingTime = 0;
+    flightTime = 0;
+    celebrateTime = 0;
+    strokes = 0;
+    velocity.set(0, 0, 0);
+    restoreSprite();
+
+    const { tee } = COURSE;
+    const y = sampleHeight(tee.x, tee.z);
+    golfer.position.set(tee.x, y, tee.z);
+    golfer.rotation.set(0, 0, 0);
+    if (peg) peg.visible = true;
+    golfer.attach(ball);
+    ball.position.copy(ballHome);
+    ball.rotation.set(0, 0, 0);
+
+    const toHole = new THREE.Vector3(COURSE.hole.x - tee.x, 0, COURSE.hole.z - tee.z).normalize();
+    controls.target.set(tee.x, y + 1.05, tee.z);
+    camera.position.set(tee.x - toHole.x * 6.5, y + 1.55, tee.z - toHole.z * 6.5);
+    controls.update();
+    mode = 'ready';
+    setActionsEnabled(true);
   }
 
   function updateWalk(dt) {
@@ -231,9 +353,9 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     ) * eased;
 
     const camTo = new THREE.Vector3(
-      walk.stance.x - walk.toHole.x * 6.5,
+      walk.stance.x - walk.toHole.x * walk.camDistance,
       walk.stance.y + 1.55,
-      walk.stance.z - walk.toHole.z * 6.5,
+      walk.stance.z - walk.toHole.z * walk.camDistance,
     );
     camera.position.lerpVectors(walk.camFrom, camTo, eased);
     _look.copy(walk.lookFrom).lerp(walk.stance, eased);
@@ -260,23 +382,36 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
     if (mode === 'flight') {
       flightTime += step;
       let stopped = velocity.lengthSq() < 1e-6 && onGround(ball.position);
+      let holed = ballInHole();
       let left = step;
-      while (!stopped && left > 0) {
+      while (!stopped && !holed && left > 0) {
         const h = Math.min(1 / 90, left);
         left -= h;
         if (stepPhysics(h)) stopped = true;
+        if (ballInHole()) holed = true;
+      }
+      if (holed) {
+        startWin();
+        return;
       }
       followBall(step);
       if (stopped || flightTime > 14) startWalk();
       return;
     }
 
-    if (mode === 'walk') updateWalk(step);
+    if (mode === 'walk') {
+      updateWalk(step);
+      return;
+    }
+
+    if (mode === 'celebrate') updateCelebrate(step);
   }
 
   return {
     begin,
     update,
+    replay,
     isReady: () => mode === 'ready',
+    isWon: () => won,
   };
 }

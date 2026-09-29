@@ -74,15 +74,17 @@ scene.add(createFlag());
 scene.add(golfer);
 
 const shotButton = document.querySelector('#shot-button');
+const winBanner = document.querySelector('#win-banner');
 const shot = createShotController({
   scene,
   camera,
   controls,
   golfer,
   shotButton,
+  winBanner,
 });
 shotButton.addEventListener('pointerdown', (event) => {
-  if (!shot.isReady()) return;
+  if (shot.isWon() || !shot.isReady()) return;
   shotButton.setPointerCapture(event.pointerId);
   shotButton.classList.add('is-pressed');
 });
@@ -94,7 +96,13 @@ function releaseShotButton() {
   shot.begin(power);
 }
 
-shotButton.addEventListener('pointerup', releaseShotButton);
+shotButton.addEventListener('pointerup', () => {
+  if (shot.isWon()) {
+    shot.replay();
+    return;
+  }
+  releaseShotButton();
+});
 shotButton.addEventListener('pointercancel', releaseShotButton);
 shotButton.addEventListener('contextmenu', (event) => event.preventDefault());
 
