@@ -183,17 +183,17 @@ export function createGolfer() {
 
   const sprite = new THREE.Mesh(new THREE.PlaneGeometry(SPRITE_SIZE, SPRITE_SIZE), material);
   sprite.name = 'golfer-sprite';
-  sprite.position.set(-pixelOffsetX(FEET_X), -pixelOffsetY(FEET_Y), 0.2);
+  sprite.position.set(-pixelOffsetX(FEET_X), -pixelOffsetY(FEET_Y), 0.15);
   sprite.castShadow = true;
   group.add(sprite);
 
-  const ballX = ((CLUB_X + 8 - FEET_X) / CANVAS) * SPRITE_SIZE;
+  const ballX = ((CLUB_X + 0 - FEET_X) / CANVAS) * SPRITE_SIZE;
   const ball = new THREE.Mesh(
     new THREE.SphereGeometry(0.032, 18, 14),
     new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25 }),
   );
   ball.name = 'ball';
-  ball.position.set(ballX, 0.048, -0.2);
+  ball.position.set(ballX, 0.001, -0.0035);
   ball.castShadow = true;
   group.add(ball);
 
@@ -201,7 +201,7 @@ export function createGolfer() {
     new THREE.CylinderGeometry(0.004, 0.007, 0.045, 6),
     new THREE.MeshStandardMaterial({ color: 0xf3f3f3, roughness: 0.6 }),
   );
-  peg.position.set(ballX, 0.02, -0.2);
+  peg.position.set(ballX, 0.0004, -0.0035);
   group.add(peg);
 
   const shadow = new THREE.Mesh(
