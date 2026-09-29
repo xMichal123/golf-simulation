@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { createGolfer, faceGolferToCamera } from './golfer.js';
 import { COURSE, createFlag, createTerrain, createTrees } from './terrain.js';
 import './style.css';
 
@@ -25,14 +26,28 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   600,
 );
-camera.position.set(COURSE.tee.x + 8, 16, COURSE.tee.z + 28);
+const golfer = createGolfer();
+const toHole = new THREE.Vector3(
+  COURSE.hole.x - golfer.position.x,
+  0,
+  COURSE.hole.z - golfer.position.z,
+).normalize();
+const side = new THREE.Vector3(-toHole.z, 0, toHole.x);
+const viewDistance = 6.5;
+camera.position.set(
+  golfer.position.x + side.x * viewDistance,
+  golfer.position.y + 1.55,
+  golfer.position.z + side.z * viewDistance,
+);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(COURSE.tee.x - 6, 2, COURSE.tee.z - 40);
+controls.target.set(golfer.position.x, golfer.position.y + 1.05, golfer.position.z);
 controls.enableDamping = true;
-controls.maxPolarAngle = Math.PI / 2.05;
-controls.minDistance = 8;
-controls.maxDistance = 180;
+controls.enablePan = false;
+controls.minPolarAngle = 0.45;
+controls.maxPolarAngle = Math.PI / 2.08;
+controls.minDistance = 3.2;
+controls.maxDistance = 48;
 controls.update();
 
 const hemi = new THREE.HemisphereLight(0xc5e4ff, 0x3e6a34, 0.9);
@@ -56,6 +71,7 @@ scene.add(sun.target);
 scene.add(createTerrain());
 scene.add(createTrees());
 scene.add(createFlag());
+scene.add(golfer);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -65,6 +81,7 @@ window.addEventListener('resize', () => {
 
 function frame() {
   controls.update();
+  faceGolferToCamera(golfer, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
