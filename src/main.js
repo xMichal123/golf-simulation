@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createGolfer, faceGolferToCamera } from './golfer.js';
+import { createShotController, readShotPower } from './shot.js';
 import { COURSE, createFlag, createTerrain, createTrees } from './terrain.js';
 import './style.css';
 
@@ -73,14 +74,24 @@ scene.add(createFlag());
 scene.add(golfer);
 
 const shotButton = document.querySelector('#shot-button');
-
+const shot = createShotController({
+  scene,
+  camera,
+  controls,
+  golfer,
+  shotButton,
+});
 shotButton.addEventListener('pointerdown', (event) => {
+  if (!shot.isReady()) return;
   shotButton.setPointerCapture(event.pointerId);
   shotButton.classList.add('is-pressed');
 });
 
 function releaseShotButton() {
+  if (!shotButton.classList.contains('is-pressed')) return;
+  const power = readShotPower(shotButton);
   shotButton.classList.remove('is-pressed');
+  shot.begin(power);
 }
 
 shotButton.addEventListener('pointerup', releaseShotButton);
@@ -93,11 +104,21 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-function frame() {
-  controls.update();
-  faceGolferToCamera(golfer, camera);
+let lastFrame = performance.now();
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+
+  if (shot.isReady()) {
+    controls.update();
+    faceGolferToCamera(golfer, camera);
+  } else {
+    shot.update(dt);
+  }
+
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
-frame();
+requestAnimationFrame(frame);

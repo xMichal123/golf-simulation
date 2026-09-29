@@ -199,6 +199,7 @@ export function createGolfer() {
     new THREE.CylinderGeometry(0.004, 0.007, 0.045, 6),
     new THREE.MeshStandardMaterial({ color: 0xf3f3f3, roughness: 0.6 }),
   );
+  peg.name = 'peg';
   peg.position.set(ballX, 0.0004, -0.0035);
   group.add(peg);
 

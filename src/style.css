@@ -44,6 +44,11 @@ canvas {
   transform-origin: left center;
 }
 
+#shot-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 #shot-button.is-pressed .shot-fill {
   animation: shot-power 0.9s linear infinite alternate;
 }
