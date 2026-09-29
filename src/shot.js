@@ -14,6 +14,7 @@ const SWING_END = 0.9;
 
 const _desired = new THREE.Vector3();
 const _look = new THREE.Vector3();
+const _ahead = new THREE.Vector3();
 
 function clampStep(dt) {
   return Math.min(dt, 0.05);
@@ -69,8 +70,11 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
   }
 
   function aimFromCamera() {
-    const yaw = golfer.rotation.y;
-    const ahead = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    camera.getWorldDirection(_ahead);
+    _ahead.y = 0;
+    if (_ahead.lengthSq() < 1e-8) _ahead.set(0, 0, -1);
+    else _ahead.normalize();
+    const ahead = _ahead.clone();
     const elevation = Math.PI / 2 - controls.getPolarAngle();
     const launch = THREE.MathUtils.lerp(
       0.12,

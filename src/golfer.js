@@ -220,7 +220,7 @@ export function createGolfer() {
   return group;
 }
 
-/** Yaw the side-view sprite so it faces the camera. Local +X stays the shot direction. */
+/** Yaw the side-view sprite so it faces the camera. */
 export function faceGolferToCamera(golfer, camera) {
   golfer.rotation.y = Math.atan2(
     camera.position.x - golfer.position.x,
