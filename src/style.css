@@ -16,3 +16,44 @@ body,
 canvas {
   display: block;
 }
+
+#shot-button {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: min(320px, calc(100% - 48px));
+  height: 64px;
+  padding: 8px;
+  border: 0;
+  border-radius: 14px;
+  background: #163024;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.shot-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: #7ed36a;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+#shot-button.is-pressed .shot-fill {
+  animation: shot-power 0.9s linear infinite alternate;
+}
+
+@keyframes shot-power {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}

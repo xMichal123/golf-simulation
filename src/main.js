@@ -72,6 +72,21 @@ scene.add(createTrees());
 scene.add(createFlag());
 scene.add(golfer);
 
+const shotButton = document.querySelector('#shot-button');
+
+shotButton.addEventListener('pointerdown', (event) => {
+  shotButton.setPointerCapture(event.pointerId);
+  shotButton.classList.add('is-pressed');
+});
+
+function releaseShotButton() {
+  shotButton.classList.remove('is-pressed');
+}
+
+shotButton.addEventListener('pointerup', releaseShotButton);
+shotButton.addEventListener('pointercancel', releaseShotButton);
+shotButton.addEventListener('contextmenu', (event) => event.preventDefault());
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
