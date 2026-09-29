@@ -8,6 +8,7 @@ const path = require('path');
 
 const root = __dirname;
 const port = Number(process.env.PORT) || 3000;
+const host = process.env.IP || '127.0.0.1';
 const hidden = new Set(['server.js', 'package.json']);
 
 const types = {
@@ -70,9 +71,15 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-const host = '127.0.0.1';
+function stop() {
+  server.close();
+  process.exit(0);
+}
+process.once('SIGTERM', stop);
+process.once('SIGINT', stop);
+
 server.listen(port, host, () => {
-  console.log('Listening on http://' + host + ':' + port);
+  console.log('Listening on ' + host + ':' + port);
 });
 `;
 
