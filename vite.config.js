@@ -70,8 +70,9 @@ server.on('error', (err) => {
   process.exit(1);
 });
 
-server.listen(port, () => {
-  console.log('Listening on ' + port);
+const host = '127.0.0.1';
+server.listen(port, host, () => {
+  console.log('Listening on http://' + host + ':' + port);
 });
 `;
 
