@@ -32,12 +32,11 @@ const toHole = new THREE.Vector3(
   0,
   COURSE.hole.z - golfer.position.z,
 ).normalize();
-const side = new THREE.Vector3(-toHole.z, 0, toHole.x);
 const viewDistance = 6.5;
 camera.position.set(
-  golfer.position.x + side.x * viewDistance,
+  golfer.position.x - toHole.x * viewDistance,
   golfer.position.y + 1.55,
-  golfer.position.z + side.z * viewDistance,
+  golfer.position.z - toHole.z * viewDistance,
 );
 
 const controls = new OrbitControls(camera, renderer.domElement);
