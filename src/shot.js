@@ -71,24 +71,13 @@ export function createShotController({ scene, camera, controls, golfer, shotButt
 
   function aimFromCamera() {
     camera.getWorldDirection(_ahead);
-    _ahead.y = 0;
     if (_ahead.lengthSq() < 1e-8) _ahead.set(0, 0, -1);
     else _ahead.normalize();
-    const ahead = _ahead.clone();
-    const elevation = Math.PI / 2 - controls.getPolarAngle();
-    const launch = THREE.MathUtils.lerp(
-      0.12,
-      0.85,
-      THREE.MathUtils.clamp(elevation / 1.45, 0, 1),
-    );
-    return {
-      horizontal: ahead,
-      direction: new THREE.Vector3(
-        ahead.x * Math.cos(launch),
-        Math.sin(launch),
-        ahead.z * Math.cos(launch),
-      ),
-    };
+    const direction = _ahead.clone();
+    const ahead = new THREE.Vector3(direction.x, 0, direction.z);
+    if (ahead.lengthSq() < 1e-8) ahead.set(0, 0, -1);
+    else ahead.normalize();
+    return { horizontal: ahead, direction };
   }
 
   function begin(power) {
